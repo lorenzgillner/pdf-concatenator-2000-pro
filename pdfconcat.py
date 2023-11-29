@@ -100,6 +100,9 @@ else:
 root = tk.Tk()
 root.title(APP_NAME)
 root.minsize(400, 400)
+icon = tk.PhotoImage(file='icon.png')
+root.iconphoto(True, icon)
+
 
 var_files = tk.StringVar(value=files)
 var_file_name = tk.StringVar(value=os.path.join(home_directory, destination_directory, DEFAULT_OUTPUT_NAME))
