@@ -1,2 +1,1 @@
 pikepdf==8.7.1
-Pillow==10.1.0
