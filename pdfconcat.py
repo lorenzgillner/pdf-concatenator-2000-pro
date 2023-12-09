@@ -105,30 +105,31 @@ def select_output():
 
 
 def concatenate_documents():
-    try:
-        pdf = pikepdf.Pdf.new()
-        current_date = datetime.date.today().strftime("D:%Y%m%d%H%M%S")
-        current_user = getpass.getuser().title()
+    if len(files) > 0:
+        try:
+            pdf = pikepdf.Pdf.new()
+            current_date = datetime.date.today().strftime("D:%Y%m%d%H%M%S")
+            current_user = getpass.getuser().title()
 
-        pdf.docinfo["/Creator"] = APP_NAME
-        pdf.docinfo["/Title"] = "Concatenated Document"
-        pdf.docinfo["/CreationDate"] = current_date
-        pdf.docinfo["/ModDate"] = current_date
-        pdf.docinfo["/Author"] = current_user
+            pdf.docinfo["/Creator"] = APP_NAME
+            pdf.docinfo["/Title"] = "Concatenated Document"
+            pdf.docinfo["/CreationDate"] = current_date
+            pdf.docinfo["/ModDate"] = current_date
+            pdf.docinfo["/Author"] = current_user
 
-        for file in files:
-            src = pikepdf.Pdf.open(file)
-            pdf.pages.extend(src.pages)
-            src.close()
+            for file in files:
+                src = pikepdf.Pdf.open(file)
+                pdf.pages.extend(src.pages)
+                src.close()
 
-        pdf.save(var_file_name.get())
-        pdf.close()
+            pdf.save(var_file_name.get())
+            pdf.close()
 
-        messagebox.showinfo(message="File created successfully!")
+            messagebox.showinfo(message="File created successfully!")
 
-    except Exception as e:
-        print(e)
-        messagebox.showerror(message="Oh no, something went wrong :(")
+        except Exception as e:
+            print(e)
+            messagebox.showerror(message="Oh no, something went wrong :(")
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -149,8 +150,10 @@ else:
 root = tk.Tk()
 root.title(APP_NAME)
 root.minsize(400, 400)
-icon = tk.PhotoImage(file="icon.png")
-root.iconphoto(True, icon)
+# icon = tk.PhotoImage(file="icon.png")
+# root.iconphoto(True, icon)
+icon_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "icon.ico"))
+root.iconbitmap(icon_path)
 
 # create interactive variables
 var_file_list = tk.StringVar(value=files)
@@ -182,6 +185,7 @@ btn_ad = tk.Button(
     fg="green",
     activeforeground="green",
     command=add_item,
+    padx=PADDING
 )
 
 # button for removing the currently selected file
@@ -194,6 +198,7 @@ btn_rm = tk.Button(
     activeforeground="red",
     command=delete_item,
     state=tk.DISABLED,
+    padx=PADDING
 )
 
 # button for moving the currently selected file up
@@ -204,6 +209,7 @@ btn_up = tk.Button(
     height=1,
     command=lambda: move_item(DIRECTION_UP),
     state=tk.DISABLED,
+    padx=PADDING
 )
 
 # button for moving the currently selected file down
@@ -214,6 +220,7 @@ btn_dn = tk.Button(
     height=1,
     command=lambda: move_item(DIRECTION_DOWN),
     state=tk.DISABLED,
+    padx=PADDING
 )
 
 # pack action buttons
@@ -233,7 +240,7 @@ output_name = tk.Entry(
     master=frm_output, font=("Arial", 14), textvariable=var_file_name
 )
 output_select = tk.Button(
-    master=frm_output, text="…", height=1, command=select_output
+    master=frm_output, text="…", height=1, command=select_output, padx=PADDING/2
 )
 output_name.pack(padx=5, pady=5, side=tk.LEFT, fill=tk.X, expand=True)
 output_select.pack(padx=(0, 5), pady=5, side=tk.LEFT)
@@ -244,7 +251,7 @@ output_select.pack(padx=(0, 5), pady=5, side=tk.LEFT)
 frm_concat = tk.Frame(master=root)
 btn_concat = tk.Button(
     master=frm_concat,
-    text="Combine my PDFs!",
+    text="Concatenate my PDFs!",
     bg="cyan",
     activebackground="lightcyan",
     command=concatenate_documents,
@@ -252,14 +259,14 @@ btn_concat = tk.Button(
     pady=PADDING,
     font=("Arial", 14),
 )
-btn_concat.pack(fill=tk.BOTH)
+btn_concat.pack(fill=tk.BOTH, expand=True)
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 # align widget frames
 frm_files.pack(padx=PADDING, pady=PADDING, side=tk.TOP, fill=tk.BOTH, expand=True)
 frm_output.pack(padx=PADDING, pady=PADDING, side=tk.TOP, fill=tk.BOTH)
-frm_concat.pack(padx=PADDING, pady=PADDING, side=tk.TOP, fill=tk.X, expand=True)
+frm_concat.pack(padx=PADDING, pady=PADDING, side=tk.TOP, fill=tk.BOTH, expand=True)
 
 # XXX is this even necessary?
 var_file_list.set(files)
