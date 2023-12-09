@@ -4,8 +4,8 @@
 a = Analysis(
     ['pdfconcat.py'],
     pathex=[],
-    binaries=[],
-    datas=[('icon.png', '.')],
+    binaries=[('icon.ico', '.')],
+    datas=[],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
