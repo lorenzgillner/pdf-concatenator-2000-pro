@@ -10,7 +10,8 @@ import getpass
 
 
 APP_NAME = "PDF Concatenator 2000 Pro"
-DEFAULT_OUTPUT_NAME = "document.pdf"
+DEFAULT_OUTPUT_NAME = "document"
+DEFAULT_EXTENSION = ".pdf"
 DEFAULT_OUTPUT_DIR = "Documents"
 
 DIRECTION_UP = 1
@@ -34,8 +35,8 @@ def set_action_buttons(event=None):
         else:
             btn_up.config(state=tk.DISABLED)
 
-        # length > 1 and selection and 
-        if selection[0] < length-1:
+        # length > 1 and selection and
+        if selection[0] < length - 1:
             btn_dn.config(state=tk.NORMAL)
         else:
             btn_dn.config(state=tk.DISABLED)
@@ -83,22 +84,22 @@ def add_item():
     current_index = selection[0] if selection else 0
 
     file_names = tkfd.askopenfilenames(
-        defaultextension=".pdf",
+        defaultextension=DEFAULT_EXTENSION,
         filetypes=[
-            ("PDF", "*.pdf"),
+            ("PDF", "*" + DEFAULT_EXTENSION),
         ],
     )
     for fn in file_names:
-        files.insert(current_index+1, fn)
+        files.insert(current_index + 1, fn)
         update_list()
         set_action_buttons()
 
 
 def select_output():
     new_file_name = tkfd.asksaveasfilename(
-        defaultextension=".pdf",
+        defaultextension=DEFAULT_EXTENSION,
         filetypes=[
-            ("PDF", "*.pdf"),
+            ("PDF", "*" + DEFAULT_EXTENSION),
         ],
     )
     var_file_name.set(new_file_name)
@@ -150,15 +151,20 @@ else:
 root = tk.Tk()
 root.title(APP_NAME)
 root.minsize(400, 400)
-# icon = tk.PhotoImage(file="icon.png")
-# root.iconphoto(True, icon)
-icon_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "icon.ico"))
-root.iconbitmap(icon_path)
+
+# set application icon
+if os.name == "posix":
+    icon_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "icon.png"))
+    icon = tk.PhotoImage(file=icon_path)
+    root.iconphoto(True, icon)
+else:
+    icon_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "icon.ico"))
+    root.iconbitmap(icon_path)
 
 # create interactive variables
 var_file_list = tk.StringVar(value=files)
 var_file_name = tk.StringVar(
-    value=os.path.join(home_directory, destination_directory, DEFAULT_OUTPUT_NAME)
+    value=os.path.join(home_directory, destination_directory, DEFAULT_OUTPUT_NAME + DEFAULT_EXTENSION)
 )
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -185,7 +191,7 @@ btn_ad = tk.Button(
     fg="green",
     activeforeground="green",
     command=add_item,
-    padx=PADDING
+    padx=PADDING,
 )
 
 # button for removing the currently selected file
@@ -198,7 +204,7 @@ btn_rm = tk.Button(
     activeforeground="red",
     command=delete_item,
     state=tk.DISABLED,
-    padx=PADDING
+    padx=PADDING,
 )
 
 # button for moving the currently selected file up
@@ -209,7 +215,7 @@ btn_up = tk.Button(
     height=1,
     command=lambda: move_item(DIRECTION_UP),
     state=tk.DISABLED,
-    padx=PADDING
+    padx=PADDING,
 )
 
 # button for moving the currently selected file down
@@ -220,7 +226,7 @@ btn_dn = tk.Button(
     height=1,
     command=lambda: move_item(DIRECTION_DOWN),
     state=tk.DISABLED,
-    padx=PADDING
+    padx=PADDING,
 )
 
 # pack action buttons
@@ -240,7 +246,7 @@ output_name = tk.Entry(
     master=frm_output, font=("Arial", 14), textvariable=var_file_name
 )
 output_select = tk.Button(
-    master=frm_output, text="…", height=1, command=select_output, padx=PADDING/2
+    master=frm_output, text="…", height=1, command=select_output, padx=PADDING / 2
 )
 output_name.pack(padx=5, pady=5, side=tk.LEFT, fill=tk.X, expand=True)
 output_select.pack(padx=(0, 5), pady=5, side=tk.LEFT)
@@ -270,6 +276,8 @@ frm_concat.pack(padx=PADDING, pady=PADDING, side=tk.TOP, fill=tk.BOTH, expand=Tr
 
 # XXX is this even necessary?
 var_file_list.set(files)
+
+root.bind("<Control-q>", lambda e: exit())
 
 # start the event loop
 root.mainloop()
