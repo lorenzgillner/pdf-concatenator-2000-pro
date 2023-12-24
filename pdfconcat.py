@@ -8,6 +8,12 @@ import os
 import datetime
 import getpass
 
+try:
+    import pyi_splash
+    py_splash.close()
+except ImportError:
+    pass
+
 
 APP_NAME = "PDF Concatenator 2000 Pro"
 DEFAULT_OUTPUT_NAME = "document"
