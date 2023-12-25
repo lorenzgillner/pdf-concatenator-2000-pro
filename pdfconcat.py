@@ -8,12 +8,6 @@ import os
 import datetime
 import getpass
 
-try:
-    import pyi_splash
-    py_splash.close()
-except ImportError:
-    pass
-
 
 APP_NAME = "PDF Concatenator 2000 Pro"
 DEFAULT_OUTPUT_NAME = "document"
@@ -24,6 +18,13 @@ DIRECTION_UP = 1
 DIRECTION_DOWN = -1
 
 PADDING = 10
+
+SPLASH = True
+
+try:
+    import pyi_splash
+except ImportError:
+    SPLASH = False
 
 
 def set_action_buttons(event=None):
@@ -170,7 +171,9 @@ else:
 # create interactive variables
 var_file_list = tk.StringVar(value=files)
 var_file_name = tk.StringVar(
-    value=os.path.join(home_directory, destination_directory, DEFAULT_OUTPUT_NAME + DEFAULT_EXTENSION)
+    value=os.path.join(
+        home_directory, destination_directory, DEFAULT_OUTPUT_NAME + DEFAULT_EXTENSION
+    )
 )
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -280,10 +283,13 @@ frm_files.pack(padx=PADDING, pady=PADDING, side=tk.TOP, fill=tk.BOTH, expand=Tru
 frm_output.pack(padx=PADDING, pady=PADDING, side=tk.TOP, fill=tk.BOTH)
 frm_concat.pack(padx=PADDING, pady=PADDING, side=tk.TOP, fill=tk.BOTH, expand=True)
 
-# XXX is this even necessary?
-var_file_list.set(files)
-
+# add default binding for termination
 root.bind("<Control-q>", lambda e: exit())
+
+# close the splash screen, if possible
+if SPLASH:
+    sleep(1)
+    pyi_splash.close()
 
 # start the event loop
 root.mainloop()
