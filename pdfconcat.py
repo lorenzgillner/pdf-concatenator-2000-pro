@@ -284,11 +284,10 @@ frm_output.pack(padx=PADDING, pady=PADDING, side=tk.TOP, fill=tk.BOTH)
 frm_concat.pack(padx=PADDING, pady=PADDING, side=tk.TOP, fill=tk.BOTH, expand=True)
 
 # add default binding for termination
-root.bind("<Control-q>", lambda e: exit())
+root.bind("<Control-q>", lambda e: root.quit())
 
 # close the splash screen, if possible
 if SPLASH:
-    sleep(1)
     pyi_splash.close()
 
 # start the event loop
