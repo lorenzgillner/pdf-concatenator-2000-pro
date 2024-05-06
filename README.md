@@ -5,7 +5,7 @@ It does exactly one thing: concatenate your PDFs.
 ## Building
 
 ```
-cd pdftools
+cd pdf-concatenator-2000-pro
 python3 -m virtualenv ./venv
 source ./venv/bin/activate
 python3 -m pip install -r requirements.txt
