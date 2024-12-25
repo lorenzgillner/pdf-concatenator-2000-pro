@@ -1,294 +1,256 @@
-import pikepdf
-import tkinter as tk
-import tkinter.filedialog as tkfd
-import tkinter.ttk as ttk
-from tkinter import messagebox, dnd
+from PySide6.QtWidgets import (
+    QApplication,
+    QMainWindow,
+    QFileDialog,
+    QMessageBox,
+    QVBoxLayout,
+    QHBoxLayout,
+    QPushButton,
+    QListWidget,
+    QWidget,
+    QLabel,
+    QLineEdit,
+    QSpacerItem,
+    QGroupBox,
+    QFrame,
+)
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QDropEvent, QDragEnterEvent, QMouseEvent
 
+import sys
 import os
 import datetime
 import getpass
-
+import pikepdf
 
 APP_NAME = "PDF Concatenator 2000 Pro"
-DEFAULT_OUTPUT_NAME = "document"
+DEFAULT_OUTPUT_NAME = "Concatenated Document"
 DEFAULT_EXTENSION = ".pdf"
 DEFAULT_OUTPUT_DIR = "Documents"
 
-DIRECTION_UP = 1
-DIRECTION_DOWN = -1
 
-PADDING = 10
+class PDFConcatenatorApp(QMainWindow):
+    # TODO use QRC for static files
+    style0 = ("background-color: white; background-image: url(backdrop.png); background-repeat: none; "
+              "background-attachment: fixed; background-position: center")
+    style1 = "background-color: white"
 
-SPLASH = True
+    # get user's home directory path
+    home_directory = os.path.expanduser("~")
 
-try:
-    import pyi_splash
-except ImportError:
-    SPLASH = False
+    export_file_name = DEFAULT_OUTPUT_NAME
 
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle(APP_NAME)
 
-def set_action_buttons(event=None):
-    selection = file_box.curselection()
-    length = len(files)
+        # File list and operations
+        self.files = []
+        self.init_ui()
+        self.setAcceptDrops(True)  # Enable drag-and-drop for external files
 
-    if length > 0 and selection:
-        btn_rm.config(state=tk.NORMAL)
-    else:
-        btn_rm.config(state=tk.DISABLED)
+    def init_ui(self):
+        central_widget = QWidget()
+        self.setCentralWidget(central_widget)
 
-    if selection:
-        if selection[0] > 0:
-            btn_up.config(state=tk.NORMAL)
-        else:
-            btn_up.config(state=tk.DISABLED)
+        central_layout = QVBoxLayout()
 
-        # length > 1 and selection and
-        if selection[0] < length - 1:
-            btn_dn.config(state=tk.NORMAL)
-        else:
-            btn_dn.config(state=tk.DISABLED)
+        file_frame = QGroupBox(flat=False)
 
+        file_layout = QVBoxLayout()
 
-def update_list():
-    var_file_list.set(files)
+        # File list display
+        self.file_list = QListWidget()
+        self.file_list.setStyleSheet(self.style0)
+        self.file_list.setSelectionMode(QListWidget.SingleSelection)
+        self.file_list.setDragDropMode(QListWidget.InternalMove)  # Enable reordering
+        self.file_list.model().rowsMoved.connect(
+            self.update_file_order
+        )  # Sync file list
+        self.file_list.itemSelectionChanged.connect(self.update_action_buttons)
+        file_layout.addWidget(self.file_list)
 
+        # Buttons for managing files
+        button_layout = QHBoxLayout()
 
-def move_item(direction: int):
-    selection = file_box.curselection()
-    selection_length = len(selection)
+        self.btn_add = QPushButton("+ Add")
+        self.btn_add.clicked.connect(self.add_files)
+        self.btn_add.setToolTip("Add file(s)")
+        self.btn_add.setWhatsThis("Add one or more files to the list.")
+        button_layout.addWidget(self.btn_add)
 
-    if selection_length > 0:
-        current_index = selection[0]
+        self.btn_rm = QPushButton("- Remove")
+        self.btn_rm.clicked.connect(self.remove_selected)
+        self.btn_rm.setEnabled(False)
+        self.btn_rm.setToolTip("Remove selected file")
+        self.btn_add.setWhatsThis("Delete a file from the list.")
+        button_layout.addWidget(self.btn_rm)
 
-        if direction == DIRECTION_UP:
-            in_limits = current_index > 0
-        else:
-            in_limits = current_index < len(files) - 1
+        self.btn_up = QPushButton("▲ Up")
+        self.btn_up.clicked.connect(self.move_up)
+        self.btn_up.setEnabled(False)
+        self.btn_up.setToolTip("Move selected file up")
+        self.btn_add.setWhatsThis("Move the currently selected file up in the list.")
+        button_layout.addWidget(self.btn_up)
 
-        if in_limits:
-            new_index = current_index - direction
-            files[current_index], files[new_index] = (
-                files[new_index],
-                files[current_index],
+        self.btn_down = QPushButton("▼ Down")
+        self.btn_down.clicked.connect(self.move_down)
+        self.btn_down.setEnabled(False)
+        self.btn_down.setToolTip("Move selected file down")
+        self.btn_add.setWhatsThis("Move the currently selected file down in the list.")
+        button_layout.addWidget(self.btn_down)
+
+        file_layout.addLayout(button_layout)
+
+        export_frame = QGroupBox(flat=False)
+
+        # Output file name and save button
+        output_layout = QHBoxLayout()
+
+        self.output_name = QLineEdit(self.export_file_name)
+        output_layout.addWidget(QLabel("Document Title:"))
+        output_layout.addWidget(self.output_name)
+
+        self.btn_save = QPushButton("Concatenate my PDFs!", )
+        self.btn_save.clicked.connect(self.save_pdf)
+        self.btn_save.setDefault(True)
+        self.btn_save.setAutoDefault(True)
+        #output_layout.addWidget(self.btn_save)
+
+        file_frame.setLayout(file_layout)
+        central_layout.addWidget(file_frame)
+
+        export_frame.setLayout(output_layout)
+        central_layout.addWidget(export_frame)
+
+        central_layout.addWidget(self.btn_save)
+
+        central_widget.setLayout(central_layout)
+
+    def update_action_buttons(self):
+        # Enable/disable buttons based on selection and file list
+        selected = self.file_list.currentRow()
+        total_files = len(self.files)
+
+        self.btn_rm.setEnabled(selected >= 0)
+        self.btn_up.setEnabled(selected > 0)
+        self.btn_down.setEnabled(selected < total_files - 1)
+
+    def update_file_order(
+        self, source_row, source_parent, destination_row, destination_parent
+    ):
+        # Update the order of files when items are reordered in the list
+        moved_item = self.files.pop(source_row)
+        self.files.insert(destination_row, moved_item)
+
+    def add_files(self):
+        # Add files via QFileDialog
+        file_paths, _ = QFileDialog.getOpenFileNames(
+            self, "Select PDF Files", "", "PDF Files (*.pdf)"
+        )
+
+        file_paths.sort()
+
+        if file_paths:
+            self.files.extend(file_paths)
+            self.refresh_file_list()
+
+    def remove_selected(self):
+        # Remove selected file
+        selected = self.file_list.currentRow()
+        if selected >= 0:
+            del self.files[selected]
+            self.refresh_file_list()
+
+    def move_up(self):
+        # Move selected file up
+        selected = self.file_list.currentRow()
+        if selected > 0:
+            self.files[selected], self.files[selected - 1] = (
+                self.files[selected - 1],
+                self.files[selected],
             )
-            file_box.selection_clear(current_index)
-            file_box.selection_set(new_index)
-            file_box.activate(new_index)
-            update_list()
-            set_action_buttons()
+            self.refresh_file_list()
+            self.file_list.setCurrentRow(selected - 1)
 
+    def move_down(self):
+        # Move selected file down
+        selected = self.file_list.currentRow()
+        if selected < len(self.files) - 1:
+            self.files[selected], self.files[selected + 1] = (
+                self.files[selected + 1],
+                self.files[selected],
+            )
+            self.refresh_file_list()
+            self.file_list.setCurrentRow(selected + 1)
 
-def delete_item():
-    selection = file_box.curselection()
-    if len(selection) > 0:
-        files.pop(selection[0])
-        update_list()
-        set_action_buttons()
+    def refresh_file_list(self):
+        # Refresh the QListWidget to match self.files
+        self.file_list.clear()
+        self.file_list.addItems(self.files)
+        if len(self.files) > 0:
+            self.file_list.setStyleSheet(self.style1)
+        else:
+            self.file_list.setStyleSheet(self.style0)
+        self.update_action_buttons()
 
+    def save_pdf(self):
+        # Concatenate PDFs and save the output file
+        output_file, _ = QFileDialog.getSaveFileName(
+            self,
+            "Save Output PDF",
+            self.output_name.text().replace(" ", "_"),
+            "PDF Files (*.pdf)",
+        )
+        if not output_file:
+            return
 
-def add_item():
-    selection = file_box.curselection()
-    current_index = selection[0] if selection else 0
-
-    file_names = tkfd.askopenfilenames(
-        defaultextension=DEFAULT_EXTENSION,
-        filetypes=[
-            ("PDF", "*" + DEFAULT_EXTENSION),
-        ],
-    )
-    for fn in file_names:
-        files.insert(current_index + 1, fn)
-        update_list()
-        set_action_buttons()
-
-
-def select_output():
-    new_file_name = tkfd.asksaveasfilename(
-        defaultextension=DEFAULT_EXTENSION,
-        filetypes=[
-            ("PDF", "*" + DEFAULT_EXTENSION),
-        ],
-    )
-    var_file_name.set(new_file_name)
-
-
-def concatenate_documents():
-    if len(files) > 0:
         try:
-            pdf = pikepdf.Pdf.new()
-            current_date = datetime.date.today().strftime("D:%Y%m%d%H%M%S")
-            current_user = getpass.getuser().title()
+            with pikepdf.Pdf.new() as pdf_output:
+                current_date = datetime.date.today().strftime("D:%Y%m%d%H%M%S")
+                current_user = getpass.getuser().title()
 
-            pdf.docinfo["/Creator"] = APP_NAME
-            pdf.docinfo["/Title"] = "Concatenated Document"
-            pdf.docinfo["/CreationDate"] = current_date
-            pdf.docinfo["/ModDate"] = current_date
-            pdf.docinfo["/Author"] = current_user
+                pdf_output.docinfo["/Creator"] = APP_NAME
+                pdf_output.docinfo["/Title"] = output_file.replace("_", " ").title()
+                pdf_output.docinfo["/CreationDate"] = current_date
+                pdf_output.docinfo["/ModDate"] = current_date
+                pdf_output.docinfo["/Author"] = current_user
 
-            for file in files:
-                src = pikepdf.Pdf.open(file)
-                pdf.pages.extend(src.pages)
-                src.close()
+                for file in self.files:
+                    with pikepdf.Pdf.open(file) as pdf:
+                        pdf_output.pages.extend(pdf.pages)
 
-            pdf.save(var_file_name.get())
-            pdf.close()
+                if not output_file.endswith(DEFAULT_EXTENSION):
+                    output_file += DEFAULT_EXTENSION
 
-            messagebox.showinfo(message="File created successfully!")
+                pdf_output.save(output_file)
 
+            QMessageBox.information(self, "Success", f"PDF saved as {output_file}")
         except Exception as e:
-            print(e)
-            messagebox.showerror(message="Oh no, something went wrong :(")
+            QMessageBox.critical(self, "Error", f"Failed to save PDF: {e}")
+
+    def dragEnterEvent(self, event: QDragEnterEvent):
+        # Accept drag if it contains URLs (files)
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+
+    def dragMoveEvent(self, event: QDragEnterEvent):
+        # Accept drag move events
+        event.acceptProposedAction()
+
+    def dropEvent(self, event: QDropEvent):
+        # Handle dropped files
+        urls = event.mimeData().urls()
+        for url in urls:
+            file_path = url.toLocalFile()
+            if file_path.endswith(".pdf"):
+                self.files.append(file_path)
+        self.refresh_file_list()
 
 
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
-# files will be stored here
-files = []
-
-# get user's home directory path
-home_directory = os.path.expanduser("~")
-
-# set default output directory path
-if os.path.exists(os.path.join(home_directory, DEFAULT_OUTPUT_DIR)):
-    destination_directory = DEFAULT_OUTPUT_DIR
-else:
-    destination_directory = ""
-
-# set up main window
-root = tk.Tk()
-root.title(APP_NAME)
-root.minsize(400, 400)
-
-# set application icon
-if os.name == "posix":
-    icon_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "icon.png"))
-    icon = tk.PhotoImage(file=icon_path)
-    root.iconphoto(True, icon)
-else:
-    icon_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "icon.ico"))
-    root.iconbitmap(icon_path)
-
-# create interactive variables
-var_file_list = tk.StringVar(value=files)
-var_file_name = tk.StringVar(
-    value=os.path.join(
-        home_directory, destination_directory, DEFAULT_OUTPUT_NAME + DEFAULT_EXTENSION
-    )
-)
-
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
-# create file list with action buttons
-frm_files = tk.LabelFrame(master=root, relief=tk.GROOVE, text="File list")
-file_box = tk.Listbox(
-    master=frm_files, listvariable=var_file_list, selectmode=tk.SINGLE
-)
-file_box.pack(padx=5, pady=5, fill=tk.BOTH, expand=True)
-file_box.bind("<FocusIn>", set_action_buttons)
-file_box.bind("<FocusOut>", set_action_buttons)
-file_box.bind("<<ListboxSelect>>", set_action_buttons)
-
-# create new frame for action buttons
-frm_action = tk.Frame(master=frm_files)
-
-# button for adding files
-btn_ad = tk.Button(
-    master=frm_action,
-    text="+",
-    width=1,
-    height=1,
-    fg="green",
-    activeforeground="green",
-    command=add_item,
-    padx=PADDING,
-)
-
-# button for removing the currently selected file
-btn_rm = tk.Button(
-    master=frm_action,
-    text="-",
-    width=1,
-    height=1,
-    fg="red",
-    activeforeground="red",
-    command=delete_item,
-    state=tk.DISABLED,
-    padx=PADDING,
-)
-
-# button for moving the currently selected file up
-btn_up = tk.Button(
-    master=frm_action,
-    text="▲",
-    width=1,
-    height=1,
-    command=lambda: move_item(DIRECTION_UP),
-    state=tk.DISABLED,
-    padx=PADDING,
-)
-
-# button for moving the currently selected file down
-btn_dn = tk.Button(
-    master=frm_action,
-    text="▼",
-    width=1,
-    height=1,
-    command=lambda: move_item(DIRECTION_DOWN),
-    state=tk.DISABLED,
-    padx=PADDING,
-)
-
-# pack action buttons
-btn_ad.pack(side=tk.LEFT, anchor=tk.N)
-btn_rm.pack(side=tk.LEFT, anchor=tk.N)
-btn_up.pack(side=tk.LEFT, anchor=tk.N)
-btn_dn.pack(side=tk.LEFT, anchor=tk.N)
-
-# pack action buttons frame
-frm_action.pack(pady=(0, 5))
-
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
-# create frame for specifying the output file path
-frm_output = tk.LabelFrame(master=root, relief=tk.GROOVE, text="Output path")
-output_name = tk.Entry(
-    master=frm_output, font=("Arial", 14), textvariable=var_file_name
-)
-output_select = tk.Button(
-    master=frm_output, text="…", height=1, command=select_output, padx=PADDING / 2
-)
-output_name.pack(padx=5, pady=5, side=tk.LEFT, fill=tk.X, expand=True)
-output_select.pack(padx=(0, 5), pady=5, side=tk.LEFT)
-
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
-# create frame for button to start file concatenation
-frm_concat = tk.Frame(master=root)
-btn_concat = tk.Button(
-    master=frm_concat,
-    text="Concatenate my PDFs!",
-    bg="cyan",
-    activebackground="lightcyan",
-    command=concatenate_documents,
-    padx=PADDING,
-    pady=PADDING,
-    font=("Arial", 14),
-)
-btn_concat.pack(fill=tk.BOTH, expand=True)
-
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
-# align widget frames
-frm_files.pack(padx=PADDING, pady=PADDING, side=tk.TOP, fill=tk.BOTH, expand=True)
-frm_output.pack(padx=PADDING, pady=PADDING, side=tk.TOP, fill=tk.BOTH)
-frm_concat.pack(padx=PADDING, pady=PADDING, side=tk.TOP, fill=tk.BOTH, expand=True)
-
-# add default binding for termination
-root.bind("<Control-q>", lambda e: root.quit())
-
-# close the splash screen, if possible
-if SPLASH:
-    pyi_splash.close()
-
-# start the event loop
-root.mainloop()
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    window = PDFConcatenatorApp()
+    window.setFixedSize(400, 480)
+    window.show()
+    sys.exit(app.exec())
