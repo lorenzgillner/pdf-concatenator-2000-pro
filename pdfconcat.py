@@ -55,7 +55,7 @@ class PDFConcatenatorApp(QMainWindow):
 
         central_layout = QVBoxLayout()
 
-        file_frame = QGroupBox(flat=False)
+        file_frame = QGroupBox("File List", flat=False)
 
         file_layout = QVBoxLayout()
 
@@ -102,7 +102,7 @@ class PDFConcatenatorApp(QMainWindow):
 
         file_layout.addLayout(button_layout)
 
-        export_frame = QGroupBox(flat=False)
+        export_frame = QGroupBox("Export Settings", flat=False)
 
         # Output file name and save button
         output_layout = QHBoxLayout()
