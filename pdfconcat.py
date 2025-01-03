@@ -10,18 +10,17 @@ from PySide6.QtWidgets import (
     QWidget,
     QLabel,
     QLineEdit,
-    QSpacerItem,
     QGroupBox,
-    QFrame,
 )
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QDropEvent, QDragEnterEvent, QMouseEvent
+from PySide6.QtGui import QDropEvent, QDragEnterEvent, QIcon, QPixmap
 
 import sys
 import os
 import datetime
 import getpass
 import pikepdf
+
+import rc_static
 
 APP_NAME = "PDF Concatenator 2000 Pro"
 DEFAULT_OUTPUT_NAME = "Concatenated Document"
@@ -31,8 +30,10 @@ DEFAULT_OUTPUT_DIR = "Documents"
 
 class PDFConcatenatorApp(QMainWindow):
     # TODO use QRC for static files
-    style0 = ("background-color: white; background-image: url(backdrop.png); background-repeat: none; "
-              "background-attachment: fixed; background-position: center")
+    style0 = (
+        "background-color: white; background-image: url(':/backdrop.png'); background-repeat: none; "
+        "background-attachment: fixed; background-position: center"
+    )
     style1 = "background-color: white"
 
     # get user's home directory path
@@ -44,10 +45,14 @@ class PDFConcatenatorApp(QMainWindow):
         super().__init__()
         self.setWindowTitle(APP_NAME)
 
-        # File list and operations
+        # file list and operations
         self.files = []
         self.init_ui()
         self.setAcceptDrops(True)  # Enable drag-and-drop for external files
+
+        # set the application icon
+        icon = QIcon(QPixmap(":/icon.png"))
+        self.setWindowIcon(icon)
 
     def init_ui(self):
         central_widget = QWidget()
@@ -111,11 +116,12 @@ class PDFConcatenatorApp(QMainWindow):
         output_layout.addWidget(QLabel("Document Title:"))
         output_layout.addWidget(self.output_name)
 
-        self.btn_save = QPushButton("Concatenate my PDFs!", )
+        self.btn_save = QPushButton(
+            "Concatenate my PDFs!",
+        )
         self.btn_save.clicked.connect(self.save_pdf)
         self.btn_save.setDefault(True)
         self.btn_save.setAutoDefault(True)
-        #output_layout.addWidget(self.btn_save)
 
         file_frame.setLayout(file_layout)
         central_layout.addWidget(file_frame)
