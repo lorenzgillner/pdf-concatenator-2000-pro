@@ -1,6 +1,8 @@
 venv/**
 .devcontainer/**
+.idea/**
 test/**
 dist
 build
 *.spec
+rc_*.py
