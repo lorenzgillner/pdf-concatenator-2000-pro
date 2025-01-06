@@ -1,18 +1,15 @@
+APPNAME := PDF Concatenator 2000 Pro
+INSTALLER := pyinstaller
+APPIMAGEC := appimagetool-x86_64.AppImage
+OPTIONS := --clean -y -n "$(APPNAME)" -w --contents-directory .
+
 ifeq ($(OS),Windows_NT)
-	INSTALLER := pyinstaller.exe
-	OPTIONS := --onefile -w -i icon.ico
+	OPTIONS += --onefile -i icon.ico
 else
-	UNAME = $(shell uname -s)
-	INSTALLER := pyinstaller
-	ifeq ($(UNAME),Darwin)
-		OPTIONS := --onedir --strip -w -i icon.png
-	endif
+	OPTIONS += --onedir --strip -i icon.png
 endif
 
-NAME := "PDF Concatenator 2000 Pro"
-OPTIONS += --clean -y -n $(NAME) --contents-directory .
-
-.PHONY: clean
+.PHONY: appimage clean
 
 pdfconcat: pdfconcat.py rc_static.py
 	$(INSTALLER) $(OPTIONS) $<
@@ -23,5 +20,11 @@ rc_static.py: static.qrc backdrop.png icon.png
 icon.ico: icon.png
 	magick icon.png -resize 64x64 icon.ico
 
+appimage: pdfconcat
+	mkdir -p build/"$(APPNAME).AppDir"/usr/bin
+	cp -r dist/"$(APPNAME)"/* build/"$(APPNAME).AppDir"/usr/bin/
+	cp AppRun icon.png pdfconcat.desktop build/"$(APPNAME).AppDir"/
+	$(APPIMAGEC) build/"$(APPNAME).AppDir" dist/"$(APPNAME).AppImage"
+
 clean:
-	rm -rf dist build
+	rm -rf dist build rc_static.py

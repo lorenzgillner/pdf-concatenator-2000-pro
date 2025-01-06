@@ -1,0 +1,4 @@
+#!/bin/sh
+CWD="$(dirname "$(readlink -f "${0}")")"
+EXE="${CWD}/usr/bin/PDF Concatenator 2000 Pro"
+LD_LIBRARY_PATH="${CWD}/usr/lib" exec "${EXE}"

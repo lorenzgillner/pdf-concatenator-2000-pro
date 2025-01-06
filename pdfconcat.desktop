@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=PDF Concatenator 2000 Pro
+Comment=Concatenate PDF Files
+Exec=PDF\ Concatentator\ 2000\ Pro
+Type=Application
+Icon=icon
+Categories=Office
+Keywords=PDF;
+MimeType=application/x-executable;
+StartupNotify=false
