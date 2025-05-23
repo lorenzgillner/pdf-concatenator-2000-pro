@@ -29,7 +29,6 @@ DEFAULT_OUTPUT_DIR = "Documents"
 
 
 class PDFConcatenatorApp(QMainWindow):
-    # TODO use QRC for static files
     style0 = (
         "background-color: white; background-image: url(':/backdrop.png'); background-repeat: none; "
         "background-attachment: fixed; background-position: center"
@@ -67,7 +66,7 @@ class PDFConcatenatorApp(QMainWindow):
         # File list display
         self.file_list = QListWidget()
         self.file_list.setStyleSheet(self.style0)
-        self.file_list.setSelectionMode(QListWidget.SingleSelection)
+        self.file_list.setSelectionMode(QListWidget.ExtendedSelection)
         self.file_list.setDragDropMode(QListWidget.InternalMove)  # Enable reordering
         self.file_list.model().rowsMoved.connect(
             self.update_file_order
@@ -90,6 +89,12 @@ class PDFConcatenatorApp(QMainWindow):
         self.btn_rm.setToolTip("Remove selected file")
         self.btn_add.setWhatsThis("Delete a file from the list.")
         button_layout.addWidget(self.btn_rm)
+
+        self.btn_clr = QPushButton("⨉ Clear")
+        self.btn_clr.clicked.connect(self.remove_all)
+        self.btn_clr.setToolTip("Remove all files")
+        self.btn_clr.setWhatsThis("Delete all files from the file list.")
+        button_layout.addWidget(self.btn_clr)
 
         self.btn_up = QPushButton("▲ Up")
         self.btn_up.clicked.connect(self.move_up)
@@ -167,6 +172,11 @@ class PDFConcatenatorApp(QMainWindow):
         if selected >= 0:
             del self.files[selected]
             self.refresh_file_list()
+
+    def remove_all(self):
+        # Remove all files
+        self.files.clear()
+        self.refresh_file_list()
 
     def move_up(self):
         # Move selected file up

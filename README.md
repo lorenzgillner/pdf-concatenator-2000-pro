@@ -8,6 +8,7 @@ It does exactly one thing: concatenate your PDFs.
 cd pdf-concatenator-2000-pro
 python3 -m virtualenv ./venv
 source ./venv/bin/activate
+sudo apt install libqpdf-dev
 python3 -m pip install -r requirements.txt
 make
 ```
